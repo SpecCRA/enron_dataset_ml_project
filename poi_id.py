@@ -2,6 +2,7 @@
 
 import sys
 import pickle
+import pandas
 sys.path.append("../tools/")
 
 from feature_format import featureFormat, targetFeatureSplit
@@ -15,6 +16,17 @@ features_list = ['poi','salary'] # You will need to use more features
 ### Load the dictionary containing the dataset
 with open("final_project_dataset.pkl", "r") as data_file:
     data_dict = pickle.load(data_file)
+
+# load data into a pandas dataframe for exploration
+df = pandas.DataFrame.from_records(list(data_dict.values()))
+employees = pandas.Series(list(data_dict.keys()))
+
+df.set_index(employees, inplace = True)
+new_features_list = df.columns.values
+
+df_dict = df.to_dict("index")
+
+print df_dict == data_dict
 
 ### Task 2: Remove outliers
 ### Task 3: Create new feature(s)
@@ -35,11 +47,11 @@ labels, features = targetFeatureSplit(data)
 from sklearn.naive_bayes import GaussianNB
 clf = GaussianNB()
 
-### Task 5: Tune your classifier to achieve better than .3 precision and recall 
+### Task 5: Tune your classifier to achieve better than .3 precision and recall
 ### using our testing script. Check the tester.py script in the final project
 ### folder for details on the evaluation method, especially the test_classifier
 ### function. Because of the small size of the dataset, the script uses
-### stratified shuffle split cross validation. For more info: 
+### stratified shuffle split cross validation. For more info:
 ### http://scikit-learn.org/stable/modules/generated/sklearn.cross_validation.StratifiedShuffleSplit.html
 
 # Example starting point. Try investigating other evaluation techniques!
