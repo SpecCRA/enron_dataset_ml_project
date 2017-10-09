@@ -20,6 +20,7 @@ from sklearn.ensemble import RandomForestClassifier
 from sklearn.tree import DecisionTreeClassifier
 from sklearn.feature_selection import SelectKBest, chi2
 from sklearn.cross_validation import train_test_split
+from sklearn.metrics import f1_score
 sys.path.append("../tools/")
 from feature_format import featureFormat, targetFeatureSplit
 from tester import dump_classifier_and_data
@@ -36,7 +37,11 @@ import matplotlib.pyplot
 ### The first feature must be "poi".
 # features_list is a list of my selected features
 # all_features is a list for exploration
-features_list = ['poi', 'bonus', 'expenses', 'bon_plus_expenses', 'bon_sal_ratio',                 'to_msg_ratio', 'from_msg_ratio']
+#features_list = ['poi', 'bonus', 'expenses', 'bon_plus_expenses', 'bon_sal_ratio', \
+#                'to_msg_ratio', 'from_msg_ratio']
+
+features_list = ['poi', 'bon_plus_expenses', 'exercised_stock_options', 
+                'total_payments']
 all_features = ['poi', 'salary', 'bonus', 'long_term_incentive',                 'deferred_income', 'expenses', 'total_payments',                 'exercised_stock_options', 'restricted_stock', 'other', 'to_messages',                 'email_address', 'from_poi_to_this_person', 'from_messages',                 'from_this_person_to_poi', 'shared_receipt_with_poi', 'to_msg_ratio',                 'from_msg_ratio', 'bon_plus_expenses', 'bon_sal_ratio'] 
 
 
@@ -280,10 +285,12 @@ best_cv = StratifiedShuffleSplit(n_splits = 100, random_state=42)
 
 
 # gridsearchcv for decisiontreeclassifier
+# The list comprehension for max_features is just to make the feature selection
+# process easier on me.
 
 start_gridcv_dc = time.time()
 dc_param_grid = {'min_samples_split' : [2, 3, 4, 5, 10, 50],
-                 'max_features' : [1, 2, 3, 4, 'auto', 'sqrt', 'log2'],
+                 'max_features' : [x for x in range(1, len(features_list))],
                  'min_samples_leaf': [1, 2, 3, 10, 20],
                 'random_state' : [2]
                 }
@@ -297,53 +304,34 @@ print "Minutes elapsed: " + str((float(end_gridcv_dc - start_gridcv_dc) / 60))
 # In[25]:
 
 
-# Try RandomSearchCV instead as an option for reviewer
-from scipy.stats import randint as sp_randint
-start_rcv_dc = time.time()
-param_dist = { 'min_samples_split': sp_randint(2,10),
-              'max_features' : sp_randint(1,5),
-              'min_samples_leaf': sp_randint(1,5),
-              'random_state': [2]
-    
-}
-rcv_dc = RandomizedSearchCV(estimator = dc, param_distributions = param_dist, 
-                           cv = best_cv, scoring = 'f1', n_jobs = 3, n_iter = 20)
-rcv_dc.fit(features_test, labels_test)
-end_rcv_dc = time.time()
-print "Minutes elapsed: " + str((float(end_rcv_dc - start_rcv_dc) / 60))
+#print classification_report(labels_train, grid_cv_rfc.best_estimator_.predict(features_train))
 
 
 # In[26]:
 
 
-#print classification_report(labels_train, grid_cv_rfc.best_estimator_.predict(features_train))
+print classification_report(labels_train, grid_cv_dc.best_estimator_.predict(features_train))
 
 
 # In[27]:
 
 
-print classification_report(labels_train, grid_cv_dc.best_estimator_.predict(features_train))
+#print classification_report(labels_test, grid_cv_rfc.best_estimator_.predict(features_test))
 
 
 # In[28]:
 
 
-#print classification_report(labels_test, grid_cv_rfc.best_estimator_.predict(features_test))
+print classification_report(labels_test, grid_cv_dc.best_estimator_.predict(features_test))
 
 
 # In[29]:
 
 
-print classification_report(labels_test, grid_cv_dc.best_estimator_.predict(features_test))
-
-
-# In[30]:
-
-
 #grid_cv_rfc.best_params_
 
 
-# In[31]:
+# In[30]:
 
 
 # Assign clf to classifer chosen after testing with tester.py
@@ -355,7 +343,7 @@ print classification_report(labels_test, grid_cv_dc.best_estimator_.predict(feat
 #clf.fit(features, labels)
 
 
-# In[32]:
+# In[31]:
 
 
 grid_cv_dc.best_params_
@@ -364,18 +352,19 @@ grid_cv_dc.best_params_
 # In[33]:
 
 
-rcv_dc.best_params_
-
-
-# In[34]:
-
-
 # Parameters are selected from GridSearchCV's best_params_ attributes
 # I ended up choosing DecisionTreeClassifier because it performed better with
 # precision and recall in tester.py
 clf = DecisionTreeClassifier(min_samples_split = 2, random_state = 2,
                             max_features = 3, min_samples_leaf = 1)
 clf.fit(features, labels)
+
+
+# In[34]:
+
+
+labels_pred = clf.predict(features_test)
+f1_score(labels_test, labels_pred)
 
 
 # In[35]:
