@@ -26,7 +26,7 @@ from feature_format import featureFormat, targetFeatureSplit
 from tester import dump_classifier_and_data
 from sklearn.metrics import classification_report
 from sklearn.metrics import accuracy_score
-import matplotlib.pyplot
+import matplotlib.pyplot as plt
 
 
 # In[2]:
@@ -59,23 +59,14 @@ df.set_index(employees, inplace=True)
 # In[3]:
 
 
-# Find how many missing values are in all features
-for feature in all_features:
-    try:
-        print "Number of missing values in " + str(feature) + ": " + str(df[feature].value_counts(dropna=False)[0])
-    except:
-        print "Created feature: ", str(feature)
+# Create another working dataframe to make new features 
+df_new = df.apply(lambda x: pd.to_numeric(x, errors='coerce')).copy()
 
 
 # In[4]:
 
 
-# Create another working dataframe to make new features 
-df_new = df.apply(lambda x: pd.to_numeric(x, errors='coerce')).copy()
-
-
-# In[5]:
-
+# The follow are my created features
 
 # from_msg_ratio is ratio messages received from poi to total messages received
 df_new['to_msg_ratio'] = df_new.from_this_person_to_poi.divide(df_new.to_messages, axis = 'index')
@@ -91,6 +82,13 @@ df_new['bon_sal_ratio'] = df_new['bonus'].divide(df_new['salary'], axis = 'index
 # new feature of bonus to expenses ratio
 
 
+# In[5]:
+
+
+# Check how many missing values are in each column
+print df_new.isnull().sum()
+
+
 # In[6]:
 
 
@@ -104,38 +102,52 @@ df_new.fillna(0, inplace = True)
 # after you create features, the column names will be your new features
 # create a list of column names:
 new_features_list = df_new.columns.values
-new_features_list
+print new_features_list
 
 
 # In[8]:
 
 
 ### Task 2: Remove outliers
-
-# From the mini project, we have to remove the one outlier called "TOTAL" as 
-# a spreadsheet quirk
-df_new.drop(['TOTAL'], inplace=True)
+# plot salary vs bonus as first step of outlier detection, visually
+get_ipython().magic(u'matplotlib inline')
+x = df_new['salary']
+y = df_new['bonus']
+plt.figure(figsize = (10, 8))
+plt.scatter(x, y)
+plt.xlabel('Salary')
+plt.ylabel('Bonus')
 
 
 # In[9]:
 
 
-# Once outliers are removed, data values should be scaled
-# Email ratios definitely don't match bonus and expenses scales
-df_new_scaled = (df_new- df_new.min()) / (df_new.max() - df_new.min())
-# Some of these may have created NaNs in the dataset
-# Fill the NaN with 0 again
-df_new_scaled.fillna(0, inplace = True)
+print "Highest bonus value: " + str(df_new['bonus'].max())
+print "Highest salary value: " + str(df_new['salary'].max())
 
 
 # In[10]:
 
 
-# create a dictionary from the dataframe
-df_dict = df_new_scaled.to_dict('index')
+# Identify the highest bonus and salary values to see what is going on 
+df_new.sort_values(['bonus', 'salary'], ascending=False).head()
 
 
 # In[11]:
+
+
+# Removed row "TOTAL" because it's not a proper data point, as in it's not an employee
+df_new.drop(['TOTAL'], inplace=True)
+
+
+# In[12]:
+
+
+# create a dictionary from the dataframe
+df_dict = df_new.to_dict('index')
+
+
+# In[13]:
 
 
 ### Task 3: Create new feature(s)
@@ -143,7 +155,14 @@ df_dict = df_new_scaled.to_dict('index')
 my_dataset = df_dict
 
 
-# In[12]:
+# In[14]:
+
+
+# Check how many data points are left in my data
+print "Number of data points: " + str(len(my_dataset))
+
+
+# In[15]:
 
 
 ### Extract features and labels from dataset for local testing
@@ -155,7 +174,7 @@ data = featureFormat(my_dataset, features_list, sort_keys = True)
 labels, features = targetFeatureSplit(data)
 
 
-# In[13]:
+# In[16]:
 
 
 ### Task 4: Try a varity of classifiers
@@ -167,7 +186,7 @@ labels, features = targetFeatureSplit(data)
 # Provided to give you a starting point. Try a variety of classifiers.
 
 
-# In[14]:
+# In[17]:
 
 
 # First one tried is RandomForestClassifier
@@ -175,7 +194,7 @@ rfc_exploration = RandomForestClassifier()
 rfc_exploration = rfc_exploration.fit(features_exploration, labels_exploration)
 
 
-# In[15]:
+# In[18]:
 
 
 # Also trying a decision tree classifier because tree classifiers make sense here
@@ -183,7 +202,7 @@ dc_exploration = DecisionTreeClassifier()
 dc_exploration= dc_exploration.fit(features_exploration, labels_exploration)
 
 
-# In[16]:
+# In[19]:
 
 
 # This function appends the feature and according importance value from tree
@@ -200,7 +219,7 @@ def input_impt(impt_list, features_list, impts):
     return impt_list
 
 
-# In[17]:
+# In[20]:
 
 
 # Call previous function to append and sort feature importances 
@@ -208,7 +227,7 @@ input_impt(rfc_impt, all_features[1:], rfc_exploration.feature_importances_)
 input_impt(dc_impt, all_features[1:], dc_exploration.feature_importances_)
 
 
-# In[18]:
+# In[21]:
 
 
 print "RandomForestClassifier importances values: "
@@ -216,7 +235,7 @@ for item in rfc_impt:
     print item[0] + " : " + str(item[1])
 
 
-# In[19]:
+# In[22]:
 
 
 print "DecisionTreeClassifier importances values: "
@@ -224,7 +243,7 @@ for item in dc_impt:
     print item[0] + " : " + str(item[1])
 
 
-# In[20]:
+# In[23]:
 
 
 # Assign to new classifiers after choosing features
@@ -233,7 +252,7 @@ rfc = rfc_exploration.fit(features, labels)
 dc = dc_exploration.fit(features, labels)
 
 
-# In[21]:
+# In[24]:
 
 
 ### Task 5: Tune your classifier to achieve better than .3 precision and recall
@@ -247,14 +266,14 @@ dc = dc_exploration.fit(features, labels)
 features_train, features_test, labels_train, labels_test =     train_test_split(features, labels, test_size=0.3, random_state=42)
 
 
-# In[22]:
+# In[25]:
 
 
 # straified cv for parameters, 100 fold, and shuffled
 best_cv = StratifiedShuffleSplit(n_splits = 100, random_state=42) 
 
 
-# In[23]:
+# In[26]:
 
 
 # random_state is to bring consistency to results
@@ -263,12 +282,12 @@ best_cv = StratifiedShuffleSplit(n_splits = 100, random_state=42)
 # Added start and end times to see how long this all takes because
 # this exhaustive method has been taking forever. 
 # Both CV settings are set to optimize for f1 to get better precision and recall
-# It took me 78 minutes to run rfc and about 3 to run decisiontreeclassifier
+# It took me 94 minutes to run rfc and about 2 to run decisiontreeclassifier
 
 #start_gridcv_rfc = time.time()
 #rfc_param_grid = {'n_estimators': [1,2, 3, 10, 100], 
 #                 'min_samples_split': [2, 3, 5],
-#                 'random_state': [2],
+#                 'random_state': [42],
 #                 'max_features': [1, 2, 3],
 #                 'max_depth' : [2, 3, 5, 10, 50],
 #                 'min_samples_leaf': [1, 2, 3, 10]
@@ -281,7 +300,7 @@ best_cv = StratifiedShuffleSplit(n_splits = 100, random_state=42)
 #print "Minutes elapsed: " + str((float(end_gridcv_rfc - start_gridcv_rfc) / 60))
 
 
-# In[24]:
+# In[27]:
 
 
 # gridsearchcv for decisiontreeclassifier
@@ -292,7 +311,7 @@ start_gridcv_dc = time.time()
 dc_param_grid = {'min_samples_split' : [2, 3, 4, 5, 10, 50],
                  'max_features' : [x for x in range(1, len(features_list))],
                  'min_samples_leaf': [1, 2, 3, 10, 20],
-                'random_state' : [2]
+                'random_state' : [42]
                 }
 grid_cv_dc = GridSearchCV(estimator = dc, param_grid = dc_param_grid, cv = best_cv,
                          n_jobs = 5, scoring = 'f1')
@@ -301,73 +320,73 @@ end_gridcv_dc = time.time()
 print "Minutes elapsed: " + str((float(end_gridcv_dc - start_gridcv_dc) / 60))
 
 
-# In[25]:
+# In[28]:
 
 
 #print classification_report(labels_train, grid_cv_rfc.best_estimator_.predict(features_train))
 
 
-# In[26]:
+# In[29]:
 
 
 print classification_report(labels_train, grid_cv_dc.best_estimator_.predict(features_train))
 
 
-# In[27]:
+# In[30]:
 
 
 #print classification_report(labels_test, grid_cv_rfc.best_estimator_.predict(features_test))
 
 
-# In[28]:
+# In[31]:
 
 
 print classification_report(labels_test, grid_cv_dc.best_estimator_.predict(features_test))
 
 
-# In[29]:
+# In[32]:
 
 
 #grid_cv_rfc.best_params_
 
 
-# In[30]:
+# In[33]:
 
 
 # Assign clf to classifer chosen after testing with tester.py
 # Parameters are selected from GridSearchCV's best_params_ attributes
 
-#clf = RandomForestClassifier(min_samples_split = 5, n_estimators = 3,
-#                            random_state = 2, max_depth = 50, min_samples_leaf = 1,
-#                            max_features = 1)
+#clf = RandomForestClassifier(min_samples_split = 2, n_estimators = 3,
+#                            random_state = 42, max_depth = 50, min_samples_leaf = 1,
+#                            max_features = 3)
 #clf.fit(features, labels)
 
 
-# In[31]:
+# In[34]:
 
 
 grid_cv_dc.best_params_
 
 
-# In[33]:
+# In[35]:
 
 
 # Parameters are selected from GridSearchCV's best_params_ attributes
 # I ended up choosing DecisionTreeClassifier because it performed better with
 # precision and recall in tester.py
-clf = DecisionTreeClassifier(min_samples_split = 2, random_state = 2,
-                            max_features = 3, min_samples_leaf = 1)
+clf = DecisionTreeClassifier(min_samples_split = 2, random_state = 42,
+                            max_features = 2, min_samples_leaf = 1)
 clf.fit(features, labels)
 
 
-# In[34]:
+# In[36]:
 
 
 labels_pred = clf.predict(features_test)
 f1_score(labels_test, labels_pred)
 
 
-# In[35]:
+# In[37]:
 
 
 ### Task 6: Dump your classifier, dataset, and features_list so anyone can
