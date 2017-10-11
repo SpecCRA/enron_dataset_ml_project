@@ -11,11 +11,13 @@ import pickle
 import pandas as pd
 import numpy
 import time
-from sklearn.preprocessing import MinMaxScaler
+from sklearn.preprocessing import StandardScaler
+from sklearn.feature_selection import SelectKBest
 from sklearn.pipeline import Pipeline, make_pipeline
 from sklearn.model_selection import GridSearchCV 
 from sklearn.model_selection import RandomizedSearchCV
 from sklearn.model_selection import StratifiedShuffleSplit
+from sklearn.neighbors import KNeighborsClassifier
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.tree import DecisionTreeClassifier
 from sklearn.feature_selection import SelectKBest, chi2
@@ -26,6 +28,7 @@ from feature_format import featureFormat, targetFeatureSplit
 from tester import dump_classifier_and_data
 from sklearn.metrics import classification_report
 from sklearn.metrics import accuracy_score
+from sklearn.pipeline import Pipeline, make_pipeline
 import matplotlib.pyplot as plt
 
 
@@ -37,13 +40,16 @@ import matplotlib.pyplot as plt
 ### The first feature must be "poi".
 # features_list is a list of my selected features
 # all_features is a list for exploration
-#features_list = ['poi', 'bonus', 'expenses', 'bon_plus_expenses', 'bon_sal_ratio', \
-#                'to_msg_ratio', 'from_msg_ratio']
 
 features_list = ['poi', 'bon_plus_expenses', 'exercised_stock_options', 
                 'total_payments']
-all_features = ['poi', 'salary', 'bonus', 'long_term_incentive',                 'deferred_income', 'expenses', 'total_payments',                 'exercised_stock_options', 'restricted_stock', 'other', 'to_messages',                 'email_address', 'from_poi_to_this_person', 'from_messages',                 'from_this_person_to_poi', 'shared_receipt_with_poi', 'to_msg_ratio',                 'from_msg_ratio', 'bon_plus_expenses', 'bon_sal_ratio'] 
-
+knn_list = ['poi']
+all_features = ['poi', 'salary', 'bonus', 'long_term_incentive',
+                'deferred_income', 'expenses', 'total_payments',
+                'exercised_stock_options', 'restricted_stock', 'other', 'to_messages',
+                'email_address', 'from_poi_to_this_person', 'from_messages',
+                'from_this_person_to_poi', 'shared_receipt_with_poi', 'to_msg_ratio',
+                'from_msg_ratio', 'bon_plus_expenses', 'bon_sal_ratio'] 
 
 ### Load the dictionary containing the dataset
 with open("final_project_dataset.pkl", "r") as data_file:
@@ -66,7 +72,7 @@ df_new = df.apply(lambda x: pd.to_numeric(x, errors='coerce')).copy()
 # In[4]:
 
 
-# The follow are my created features
+# The following are my created features
 
 # from_msg_ratio is ratio messages received from poi to total messages received
 df_new['to_msg_ratio'] = df_new.from_this_person_to_poi.divide(df_new.to_messages, axis = 'index')
@@ -110,13 +116,15 @@ print new_features_list
 
 ### Task 2: Remove outliers
 # plot salary vs bonus as first step of outlier detection, visually
-get_ipython().magic(u'matplotlib inline')
+# uncomment the next line if using Jupyter Notebook for an inline plot
+#%matplotlib inline
 x = df_new['salary']
 y = df_new['bonus']
 plt.figure(figsize = (10, 8))
 plt.scatter(x, y)
 plt.xlabel('Salary')
 plt.ylabel('Bonus')
+plt.show()
 
 
 # In[9]:
@@ -143,11 +151,18 @@ df_new.drop(['TOTAL'], inplace=True)
 # In[12]:
 
 
+# Find how many POIs are left in the data
+print "Number of POI in data set: " + str(len(df_new[(df_new['poi'] == True)]))
+
+
+# In[13]:
+
+
 # create a dictionary from the dataframe
 df_dict = df_new.to_dict('index')
 
 
-# In[13]:
+# In[14]:
 
 
 ### Task 3: Create new feature(s)
@@ -155,14 +170,14 @@ df_dict = df_new.to_dict('index')
 my_dataset = df_dict
 
 
-# In[14]:
+# In[15]:
 
 
 # Check how many data points are left in my data
 print "Number of data points: " + str(len(my_dataset))
 
 
-# In[15]:
+# In[16]:
 
 
 ### Extract features and labels from dataset for local testing
@@ -174,7 +189,7 @@ data = featureFormat(my_dataset, features_list, sort_keys = True)
 labels, features = targetFeatureSplit(data)
 
 
-# In[16]:
+# In[17]:
 
 
 ### Task 4: Try a varity of classifiers
@@ -186,7 +201,27 @@ labels, features = targetFeatureSplit(data)
 # Provided to give you a starting point. Try a variety of classifiers.
 
 
-# In[17]:
+# In[18]:
+
+
+selection = SelectKBest(k = 3)
+selection.fit(features_exploration, labels_exploration)
+print selection.scores_
+
+
+# In[19]:
+
+
+# Pipeline with KNearestNeighbors, first scaling with StandardScaler
+# PCA is to help with KNN performance
+
+knn = make_pipeline(StandardScaler(with_std = True), 
+                    SelectKBest(),
+                    KNeighborsClassifier())
+knn.fit(features_exploration, labels_exploration)
+
+
+# In[20]:
 
 
 # First one tried is RandomForestClassifier
@@ -194,7 +229,7 @@ rfc_exploration = RandomForestClassifier()
 rfc_exploration = rfc_exploration.fit(features_exploration, labels_exploration)
 
 
-# In[18]:
+# In[21]:
 
 
 # Also trying a decision tree classifier because tree classifiers make sense here
@@ -202,13 +237,14 @@ dc_exploration = DecisionTreeClassifier()
 dc_exploration= dc_exploration.fit(features_exploration, labels_exploration)
 
 
-# In[19]:
+# In[22]:
 
 
 # This function appends the feature and according importance value from tree
 # classifier to a list to view more neatly
 rfc_impt = []
 dc_impt = []
+selection_scores = []
 
 def input_impt(impt_list, features_list, impts):
     for i in range(len(impts)):
@@ -219,15 +255,16 @@ def input_impt(impt_list, features_list, impts):
     return impt_list
 
 
-# In[20]:
+# In[23]:
 
 
 # Call previous function to append and sort feature importances 
 input_impt(rfc_impt, all_features[1:], rfc_exploration.feature_importances_)
 input_impt(dc_impt, all_features[1:], dc_exploration.feature_importances_)
+input_impt(selection_scores, all_features[1:], selection.scores_)
 
 
-# In[21]:
+# In[24]:
 
 
 print "RandomForestClassifier importances values: "
@@ -235,7 +272,7 @@ for item in rfc_impt:
     print item[0] + " : " + str(item[1])
 
 
-# In[22]:
+# In[25]:
 
 
 print "DecisionTreeClassifier importances values: "
@@ -243,7 +280,15 @@ for item in dc_impt:
     print item[0] + " : " + str(item[1])
 
 
-# In[23]:
+# In[26]:
+
+
+print "SelectKBest scores: "
+for item in selection_scores:
+    print item[0] + " : " + str(item[1])
+
+
+# In[27]:
 
 
 # Assign to new classifiers after choosing features
@@ -252,7 +297,7 @@ rfc = rfc_exploration.fit(features, labels)
 dc = dc_exploration.fit(features, labels)
 
 
-# In[24]:
+# In[28]:
 
 
 ### Task 5: Tune your classifier to achieve better than .3 precision and recall
@@ -266,95 +311,81 @@ dc = dc_exploration.fit(features, labels)
 features_train, features_test, labels_train, labels_test =     train_test_split(features, labels, test_size=0.3, random_state=42)
 
 
-# In[25]:
+# In[29]:
 
 
 # straified cv for parameters, 100 fold, and shuffled
 best_cv = StratifiedShuffleSplit(n_splits = 100, random_state=42) 
 
 
-# In[26]:
-
-
-# random_state is to bring consistency to results
-# results to best_params_ were inconsistent before adding random_state
-# If you uncomment to run these lines of code, it may take a while.
-# Added start and end times to see how long this all takes because
-# this exhaustive method has been taking forever. 
-# Both CV settings are set to optimize for f1 to get better precision and recall
-# It took me 94 minutes to run rfc and about 2 to run decisiontreeclassifier
-
-#start_gridcv_rfc = time.time()
-#rfc_param_grid = {'n_estimators': [1,2, 3, 10, 100], 
-#                 'min_samples_split': [2, 3, 5],
-#                 'random_state': [42],
-#                 'max_features': [1, 2, 3],
-#                 'max_depth' : [2, 3, 5, 10, 50],
-#                 'min_samples_leaf': [1, 2, 3, 10]
-#                 }
-
-#grid_cv_rfc = GridSearchCV(estimator = rfc, param_grid = rfc_param_grid, cv = best_cv,
-#                          n_jobs = 5, scoring = 'f1')
-#grid_cv_rfc.fit(features, labels)
-#end_gridcv_rfc = time.time()
-#print "Minutes elapsed: " + str((float(end_gridcv_rfc - start_gridcv_rfc) / 60))
-
-
-# In[27]:
-
-
-# gridsearchcv for decisiontreeclassifier
-# The list comprehension for max_features is just to make the feature selection
-# process easier on me.
-
-start_gridcv_dc = time.time()
-dc_param_grid = {'min_samples_split' : [2, 3, 4, 5, 10, 50],
-                 'max_features' : [x for x in range(1, len(features_list))],
-                 'min_samples_leaf': [1, 2, 3, 10, 20],
-                'random_state' : [42]
-                }
-grid_cv_dc = GridSearchCV(estimator = dc, param_grid = dc_param_grid, cv = best_cv,
-                         n_jobs = 5, scoring = 'f1')
-grid_cv_dc.fit(features, labels)
-end_gridcv_dc = time.time()
-print "Minutes elapsed: " + str((float(end_gridcv_dc - start_gridcv_dc) / 60))
-
-
-# In[28]:
-
-
-#print classification_report(labels_train, grid_cv_rfc.best_estimator_.predict(features_train))
-
-
-# In[29]:
-
-
-print classification_report(labels_train, grid_cv_dc.best_estimator_.predict(features_train))
-
-
 # In[30]:
 
 
-#print classification_report(labels_test, grid_cv_rfc.best_estimator_.predict(features_test))
+# Function for entering classifiers into GridSearchCV with respective param_grids
+# The output is time elapsed to run GridSearchCV and best_params_
+
+def gridcv(clf, param_grid, cv, n_jobs, scoring):
+    start_time = time.time()
+    grid_cv = GridSearchCV(estimator = clf, param_grid = param_grid, cv = cv, 
+                          n_jobs = n_jobs, scoring = scoring)
+    grid_cv.fit(features, labels)
+    end_time = time.time()
+    print "Minutes elapsed: " + str((float(end_time - start_time) / 60))
+    print grid_cv.best_params_
 
 
 # In[31]:
 
 
-print classification_report(labels_test, grid_cv_dc.best_estimator_.predict(features_test))
+# Parameter grid for RandomForestClassifier
+# random_state parameter is to maintain consistency in output.
+
+rfc_param_grid = {'n_estimators': [1,2, 3, 10, 100], 
+                 'min_samples_split': [2, 3, 5],
+                'random_state': [42],
+                 'max_features': [1, 2, 3],
+                 'max_depth' : [2, 3, 5, 10, 50],
+                 'min_samples_leaf': [1, 2, 3, 10]
+                 }
 
 
 # In[32]:
 
 
-#grid_cv_rfc.best_params_
+# gridsearchcv parameter grid for decisiontreeclassifier
+# The list comprehension for max_features is just to make the feature selection
+# process easier on me.
+dc_param_grid = {'min_samples_split' : [2, 3, 4, 5, 10, 50],
+                 'max_features' : [x for x in range(1, len(features_list))],
+                 'min_samples_leaf': [1, 2, 3, 10, 20],
+                'random_state' : [42]
+                }
 
 
 # In[33]:
 
 
+# gridsearchcv parameter grid for KNeighborsClassifier
+knn_param_grid = {'kneighborsclassifier__n_neighbors': [x for x in range(1, len(features_list))],
+                  'kneighborsclassifier__algorithm': ['auto'],
+                  'kneighborsclassifier__p': [1, 2],
+                  'kneighborsclassifier__weights': ['uniform', 'distance'],
+                  'selectkbest__k': [x for x in range(1, len(features_list))]
+                 }
+
+
+# In[34]:
+
+
+# It took 94 minutes for me to run GridSearchCV for RandomForestClassifier.
+#gridcv(rfc, rfc_param_grid, best_cv, 5, 'f1')
+
+
+# In[35]:
+
+
 # Assign clf to classifer chosen after testing with tester.py
-# Parameters are selected from GridSearchCV's best_params_ attributes
+# Parameters are selected from GridSearchCV's best_params_ attribute
 
 #clf = RandomForestClassifier(min_samples_split = 2, n_estimators = 3,
 #                            random_state = 42, max_depth = 50, min_samples_leaf = 1,
@@ -362,13 +393,13 @@ print classification_report(labels_test, grid_cv_dc.best_estimator_.predict(feat
 #clf.fit(features, labels)
 
 
-# In[34]:
+# In[36]:
 
 
-grid_cv_dc.best_params_
+gridcv(dc, dc_param_grid, best_cv, 5, 'f1')
 
 
-# In[35]:
+# In[37]:
 
 
 # Parameters are selected from GridSearchCV's best_params_ attributes
@@ -379,14 +410,34 @@ clf = DecisionTreeClassifier(min_samples_split = 2, random_state = 42,
 clf.fit(features, labels)
 
 
-# In[36]:
+# In[38]:
 
 
+# Run GridSearchCV for KNeighborsClassifier parameters
+gridcv(knn, knn_param_grid, best_cv, 5, 'f1')
+
+
+# In[39]:
+
+
+# Assign KNeighborsClassifier to clf for testing
+
+#clf = make_pipeline(StandardScaler(with_std = True), 
+#                    SelectKBest(k = 3),
+#                    KNeighborsClassifier(n_neighbors = 1, algorithm = 'auto', 
+#                                        weights = 'uniform',p = 2))
+#clf.fit(features_exploration, labels_exploration)
+
+
+# In[40]:
+
+
+# This little bit of code is a quick preliminary check before running tester.py
 labels_pred = clf.predict(features_test)
 f1_score(labels_test, labels_pred)
 
 
-# In[37]:
+# In[41]:
 
 
 ### Task 6: Dump your classifier, dataset, and features_list so anyone can
