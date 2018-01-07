@@ -1,10 +1,18 @@
-# ml_project_files
-Udacity Machine Learning Enron Data Project Files
+# Machine Learning with Enron Dataset Project 
 
-poi_id.ipynb is the notebook file in Jupyter Notebook I organized
+## Description
+This repository contains all files from Udacity's Intro to Machine Learning project. In this project, I used a couple classifiers to test accuracy in fraud detection. 
 
-poi_id.py is the python file you can run. Everything in it should work! I hope it's formatted properly.
+**These following scripts run in Python 2, not 3**
 
-project_free_response.pdf includes the answers to the free response questions in the project. 
+## Usage
+* `poi_id.ipynb` is a Jupyter Notebook file organized to explore the dataset, make any necessary changes such as outlier removal, and test classifiers.
+* Running `poi_id.py` will output `.pkl` files used for testing.
+* Running `tester.py` with the necessary Udacity files will output evaluation metrics. 
 
-emails_by_addresses.zip is added because submitter said it had too many files initially. You may have to unzip this file first to run code.
+## Notes
+* A list of resources used is provided in `list_of_resources.pdf`
+* Answers to project questions are in `project_free_response.pdf`
+
+## Credits
+* Udacity's Machine Learning project creator provided most of the code to run this project, namely `poi_id.py` and `tester.py`

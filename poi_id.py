@@ -14,7 +14,7 @@ import time
 from sklearn.preprocessing import StandardScaler
 from sklearn.feature_selection import SelectKBest
 from sklearn.pipeline import Pipeline, make_pipeline
-from sklearn.model_selection import GridSearchCV 
+from sklearn.model_selection import GridSearchCV
 from sklearn.model_selection import RandomizedSearchCV
 from sklearn.model_selection import StratifiedShuffleSplit
 from sklearn.neighbors import KNeighborsClassifier
@@ -41,7 +41,7 @@ import matplotlib.pyplot as plt
 # features_list is a list of my selected features
 # all_features is a list for exploration
 
-features_list = ['poi', 'bon_plus_expenses', 'exercised_stock_options', 
+features_list = ['poi', 'bon_plus_expenses', 'exercised_stock_options',
                 'total_payments']
 knn_list = ['poi']
 all_features = ['poi', 'salary', 'bonus', 'long_term_incentive',
@@ -49,7 +49,7 @@ all_features = ['poi', 'salary', 'bonus', 'long_term_incentive',
                 'exercised_stock_options', 'restricted_stock', 'other', 'to_messages',
                 'email_address', 'from_poi_to_this_person', 'from_messages',
                 'from_this_person_to_poi', 'shared_receipt_with_poi', 'to_msg_ratio',
-                'from_msg_ratio', 'bon_plus_expenses', 'bon_sal_ratio'] 
+                'from_msg_ratio', 'bon_plus_expenses', 'bon_sal_ratio']
 
 ### Load the dictionary containing the dataset
 with open("final_project_dataset.pkl", "r") as data_file:
@@ -65,7 +65,7 @@ df.set_index(employees, inplace=True)
 # In[3]:
 
 
-# Create another working dataframe to make new features 
+# Create another working dataframe to make new features
 df_new = df.apply(lambda x: pd.to_numeric(x, errors='coerce')).copy()
 
 
@@ -92,7 +92,7 @@ df_new['bon_sal_ratio'] = df_new['bonus'].divide(df_new['salary'], axis = 'index
 
 
 # Check how many missing values are in each column
-print df_new.isnull().sum()
+print(df_new.isnull().sum())
 
 
 # In[6]:
@@ -108,7 +108,7 @@ df_new.fillna(0, inplace = True)
 # after you create features, the column names will be your new features
 # create a list of column names:
 new_features_list = df_new.columns.values
-print new_features_list
+print(new_features_list)
 
 
 # In[8]:
@@ -130,14 +130,14 @@ plt.show()
 # In[9]:
 
 
-print "Highest bonus value: " + str(df_new['bonus'].max())
-print "Highest salary value: " + str(df_new['salary'].max())
+print("Highest bonus value: " + str(df_new['bonus'].max()))
+print("Highest salary value: " + str(df_new['salary'].max()))
 
 
 # In[10]:
 
 
-# Identify the highest bonus and salary values to see what is going on 
+# Identify the highest bonus and salary values to see what is going on
 df_new.sort_values(['bonus', 'salary'], ascending=False).head()
 
 
@@ -152,7 +152,7 @@ df_new.drop(['TOTAL'], inplace=True)
 
 
 # Find how many POIs are left in the data
-print "Number of POI in data set: " + str(len(df_new[(df_new['poi'] == True)]))
+print("Number of POI in data set: " + str(len(df_new[(df_new['poi'] == True)])))
 
 
 # In[13]:
@@ -174,7 +174,7 @@ my_dataset = df_dict
 
 
 # Check how many data points are left in my data
-print "Number of data points: " + str(len(my_dataset))
+print("Number of data points: " + str(len(my_dataset)))
 
 
 # In[16]:
@@ -206,7 +206,7 @@ labels, features = targetFeatureSplit(data)
 
 selection = SelectKBest(k = 3)
 selection.fit(features_exploration, labels_exploration)
-print selection.scores_
+print(selection.scores_)
 
 
 # In[19]:
@@ -215,7 +215,7 @@ print selection.scores_
 # Pipeline with KNearestNeighbors, first scaling with StandardScaler
 # PCA is to help with KNN performance
 
-knn = make_pipeline(StandardScaler(with_std = True), 
+knn = make_pipeline(StandardScaler(with_std = True),
                     SelectKBest(),
                     KNeighborsClassifier())
 knn.fit(features_exploration, labels_exploration)
@@ -249,16 +249,16 @@ selection_scores = []
 def input_impt(impt_list, features_list, impts):
     for i in range(len(impts)):
         impt_list.append( (features_list[i], impts[i]) )
-    
+
     impt_list.sort(key = lambda tup: tup[1], reverse = True)
-    
+
     return impt_list
 
 
 # In[23]:
 
 
-# Call previous function to append and sort feature importances 
+# Call previous function to append and sort feature importances
 input_impt(rfc_impt, all_features[1:], rfc_exploration.feature_importances_)
 input_impt(dc_impt, all_features[1:], dc_exploration.feature_importances_)
 input_impt(selection_scores, all_features[1:], selection.scores_)
@@ -267,25 +267,25 @@ input_impt(selection_scores, all_features[1:], selection.scores_)
 # In[24]:
 
 
-print "RandomForestClassifier importances values: "
+print("RandomForestClassifier importances values: ")
 for item in rfc_impt:
-    print item[0] + " : " + str(item[1])
+    print(item[0] + " : " + str(item[1]))
 
 
 # In[25]:
 
 
-print "DecisionTreeClassifier importances values: "
+print("DecisionTreeClassifier importances values: ")
 for item in dc_impt:
-    print item[0] + " : " + str(item[1])
+    print(item[0] + " : " + str(item[1]))
 
 
 # In[26]:
 
 
-print "SelectKBest scores: "
-for item in selection_scores:
-    print item[0] + " : " + str(item[1])
+#print "SelectKBest scores: "
+#for item in selection_scores:
+#    print item[0] + " : " + str(item[1])
 
 
 # In[27]:
@@ -315,7 +315,7 @@ features_train, features_test, labels_train, labels_test =     train_test_split(
 
 
 # straified cv for parameters, 100 fold, and shuffled
-best_cv = StratifiedShuffleSplit(n_splits = 100, random_state=42) 
+best_cv = StratifiedShuffleSplit(n_splits = 100, random_state=42)
 
 
 # In[30]:
@@ -326,12 +326,12 @@ best_cv = StratifiedShuffleSplit(n_splits = 100, random_state=42)
 
 def gridcv(clf, param_grid, cv, n_jobs, scoring):
     start_time = time.time()
-    grid_cv = GridSearchCV(estimator = clf, param_grid = param_grid, cv = cv, 
+    grid_cv = GridSearchCV(estimator = clf, param_grid = param_grid, cv = cv,
                           n_jobs = n_jobs, scoring = scoring)
     grid_cv.fit(features, labels)
     end_time = time.time()
-    print "Minutes elapsed: " + str((float(end_time - start_time) / 60))
-    print grid_cv.best_params_
+    print("Minutes elapsed: " + str((float(end_time - start_time) / 60)))
+    print(grid_cv.best_params_)
 
 
 # In[31]:
@@ -340,7 +340,7 @@ def gridcv(clf, param_grid, cv, n_jobs, scoring):
 # Parameter grid for RandomForestClassifier
 # random_state parameter is to maintain consistency in output.
 
-rfc_param_grid = {'n_estimators': [1,2, 3, 10, 100], 
+rfc_param_grid = {'n_estimators': [1,2, 3, 10, 100],
                  'min_samples_split': [2, 3, 5],
                 'random_state': [42],
                  'max_features': [1, 2, 3],
@@ -422,9 +422,9 @@ gridcv(knn, knn_param_grid, best_cv, 5, 'f1')
 
 # Assign KNeighborsClassifier to clf for testing
 
-#clf = make_pipeline(StandardScaler(with_std = True), 
+#clf = make_pipeline(StandardScaler(with_std = True),
 #                    SelectKBest(k = 3),
-#                    KNeighborsClassifier(n_neighbors = 1, algorithm = 'auto', 
+#                    KNeighborsClassifier(n_neighbors = 1, algorithm = 'auto',
 #                                        weights = 'uniform',p = 2))
 #clf.fit(features_exploration, labels_exploration)
 
