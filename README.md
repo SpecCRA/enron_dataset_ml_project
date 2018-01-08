@@ -16,3 +16,10 @@ This repository contains all files from Udacity's Intro to Machine Learning proj
 
 ## Credits
 * Udacity's Machine Learning project creator provided most of the code to run this project, namely `poi_id.py` and `tester.py`
+
+## Tech
+* **Python 2**
+* **Python 3**
+* **scikit-learn** : For the machine learning portion of this project
+* **Jupyter Notebook** 
+* **Pandas** : Data exploration and cleaning
